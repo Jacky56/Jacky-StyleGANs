@@ -59,14 +59,18 @@ model = generator()
 
 
 
-plot_model(model,"./../diagram/generator.png")
+# plot_model(model,"./../diagram/generator.png")
+#
+#
+#
+# a = model.predict(
+#     {
+#         "constant": np.ones([1,4,4,1]),
+#         "noise": np.random.normal(0,1, [1,64,64,1]),
+#         "latent_z": np.ones([1,64,64,3])
+#     }
+# )
 
+model.save_weights('./../models/test.h5')
+model.load_weights('./../models/test.h5')
 
-
-a = model.predict(
-    {
-        "constant": np.ones([1,4,4,1]),
-        "noise": np.random.normal(0,1, [1,64,64,1]),
-        "latent_z": np.ones([1,64,64,3])
-    }
-)

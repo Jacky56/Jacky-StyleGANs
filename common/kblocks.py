@@ -5,7 +5,6 @@ from functools import partial
 from keras.layers import *
 from keras.models import *
 import keras.backend as K
-import tensorflow as tf
 
 
 def generator_block(input, num_filters, noise, lantent_vector):
@@ -45,6 +44,7 @@ def generator_block_v2(input, num_filters, noise, lantent_vector):
     sigma = K.pow(sigma + 1e-7, -0.5)
     # sigma = Reshape([1, 1, num_filters])(sigma)
     layer1 = Lambda(lambda x: x * sigma)(layer1)
+
 
     layer1 = Lambda(lambda x: x + bias)(layer1)
 
@@ -143,7 +143,7 @@ def latent_W_VGG_encoder(image):
                    padding='valid')(layer)
     # 1x1x512
 
-    layer = Flatten()(layer)
+    layer = Flatten(name='latent_vector')(layer)
     # 1x512
 
     return layer
