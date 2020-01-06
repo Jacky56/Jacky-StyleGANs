@@ -6,7 +6,6 @@ from keras.layers import *
 from keras.models import *
 import keras.backend as K
 
-
 def generator_block(input, num_filters, noise, lantent_vector):
     scale, bias = Style_Gate(lantent_vector, num_filters)
     noise_channel = Noise_Gate(noise, num_filters, input.shape[1])
@@ -26,7 +25,7 @@ def generator_block_v2(input, num_filters, noise, lantent_vector):
     scale, bias = Style_Gate(lantent_vector, num_filters)
     noise_channel = Noise_Gate(noise, input.shape[-1], input.shape[1])
 
-    # input = add([noise_channel, input])
+    input = add([noise_channel, input])
 
     layer = Conv2D(filters=num_filters,
                    kernel_size=(3,3),
@@ -50,23 +49,10 @@ def generator_block_v2(input, num_filters, noise, lantent_vector):
 
     return layer1
 
-
-def Conv_block(input, num_filters, kernal_size=(3,3)):
-    layer = Conv2D(filters=num_filters,
-                   kernel_size=kernal_size,
-                   activation='relu',
-                   padding='same')(input)
-    layer = Conv2D(filters=num_filters,
-                   kernel_size=kernal_size,
-                   activation='relu',
-                   padding='same')(layer)
-
-    return layer
-
 def Style_Gate(lantent_vector, num_filters):
     #latent w parsed into 2 FC, scale and bias
-    scale = Dense(units=num_filters)(lantent_vector)
-    bias = Dense(units=num_filters)(lantent_vector)
+    scale = Dense(units=num_filters, name='Style_scale_')(lantent_vector)
+    bias = Dense(units=num_filters, name='Style_bias_')(lantent_vector)
 
     scale = Reshape([1, 1, num_filters])(scale)
     bias = Reshape([1, 1, num_filters])(bias)
@@ -115,36 +101,69 @@ def latent_W(latent_Z, units=256):
     layer = Dense(units=units, activation='relu')(layer)
     return layer
 
-#64x64x3
+# 64x64x3
 def latent_W_VGG_encoder(image):
-    layer = Conv_block(image, 16)
-    layer = MaxPooling2D()(layer)
+
+    projection64 = Conv2D(filters=16,
+                          kernel_size=(1,1),
+                          activation='relu',
+                          padding='valid')(image)
+    down32 = MaxPooling2D()(projection64)
     # 32x32x16
 
-    layer = Conv_block(layer, 32)
-    layer = MaxPooling2D()(layer)
+    vgg16 = VGG_module(down32, 32)
     # 16x16x32
 
-    layer = Conv_block(layer, 64)
-    layer = MaxPooling2D()(layer)
+    vgg8 = VGG_module(vgg16, 64)
     #8x8x64
 
-    layer = Conv_block(layer, 128)
-    layer = MaxPooling2D()(layer)
+    vgg4 = VGG_module(vgg8, 128)
     #4x4x128
 
-    layer = Conv_block(layer, 256)
-    layer = MaxPooling2D()(layer)
+    vgg2 = VGG_module(vgg4, 256)
     # 2x2x256
 
-    layer = Conv2D(filters=512,
-                   kernel_size=(2,2),
-                   activation='relu',
-                   padding='valid')(layer)
-    # 1x1x512
+    vgg1 = Conv2D(filters=256,
+                  kernel_size=(2,2),
+                  activation='relu',
+                  padding='valid')(vgg2)
+    down1 = MaxPooling2D()(vgg2)
+    residual1 = add([vgg1, down1])
+    norm1 = BatchNormalization()(residual1)
+    # 1x1x256
 
-    layer = Flatten(name='latent_vector')(layer)
-    # 1x512
+    layer = Flatten()(norm1)
+    # 1x256
+
+    layer = Dense(units=512,
+                  activation='relu',
+                  name='latent_vector')(layer)
+    # 1x256
+
+    return layer
+
+
+def VGG_module(image, num_channels, kernel_size=(3,3)):
+    conv = Conv_block(image, num_channels, kernel_size)
+    projection = Conv2D(filters=num_channels,
+                          kernel_size=(1,1),
+                          activation='relu',
+                          padding='same')(image)
+    residual = add([conv, projection])
+    downsample = MaxPooling2D()(residual)
+    norm = BatchNormalization()(downsample)
+
+    return norm
+
+def Conv_block(input, num_filters, kernal_size=(3,3)):
+    layer = Conv2D(filters=num_filters,
+                   kernel_size=kernal_size,
+                   activation='relu',
+                   padding='same')(input)
+    layer = Conv2D(filters=num_filters,
+                   kernel_size=kernal_size,
+                   activation='relu',
+                   padding='same')(layer)
 
     return layer
 
