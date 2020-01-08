@@ -65,7 +65,7 @@ class Train:
             y_col=feature_names,
             target_size=(image_size, image_size),
             batch_size=batch_size,
-            class_mode='binary'
+            class_mode='sparse'
         )
 
         valid_generator = valid_datagen.flow_from_dataframe(
@@ -75,7 +75,7 @@ class Train:
             y_col=feature_names,
             target_size=(image_size, image_size),
             batch_size=batch_size,
-            class_mode='binary'
+            class_mode='sparse'
         )
 
         # x_train, y_train = self.getSample(image_size, batch_size)
