@@ -34,5 +34,5 @@ trainer.set_metadata(metadata)
 trainer.set_model(model)
 trainer.set_tensorboard(tesnorboard)
 
-trainer.train(image_size, batch_size, epochs=150)
+trainer.train(image_size, batch_size, epochs=1500)
 

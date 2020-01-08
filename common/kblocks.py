@@ -135,7 +135,7 @@ def latent_W_VGG_encoder(image):
     layer = Flatten()(norm1)
     # 1x256
 
-    layer = Dense(units=512,
+    layer = Dense(units=1024,
                   activation='relu',
                   name='latent_vector')(layer)
     # 1x256

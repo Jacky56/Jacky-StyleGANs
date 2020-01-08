@@ -7,12 +7,9 @@ from keras.models import *
 import keras.backend as K
 import tensorflow as tf
 from keras.utils import plot_model
-
-
 from common.kblocks import *
 
-
-filtered = pd.read_csv('./../source/custom_set/metadata/attr.txt', sep='\s+')
+filtered = pd.read_csv('E:/Jacky-StyleGANs/source/custom_set/metadata/attr.txt', sep='\s+')
 labels = filtered.drop(['filename'], axis=1)
 
 
@@ -25,5 +22,6 @@ model = Model(inputs=[inputs], outputs=[outputs])
 model.compile(optimizer='adadelta', loss='cosine_proximity', metrics=['binary_accuracy', 'mse'])
 
 model.summary()
+
 
 model.save('./../models/VGG_encoder.h5')
