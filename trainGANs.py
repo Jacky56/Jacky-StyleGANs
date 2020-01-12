@@ -129,7 +129,7 @@ trainer_generator.set_metadata(metadata)
 trainer_generator.set_model(model_generator)
 trainer_generator.set_tensorboard(cp_gen)
 
-for i in range(1000):
+for i in range(10000):
     trainer_discriminator.train_dis_GANs(image_size, batch_size, sample_size=250)
     trainer_generator.train_gen_GANs(image_size, batch_size, sample_size=4000)
 

@@ -63,13 +63,14 @@ def generator(latent_model):
 
     up_64 = UpSampling2D(size=(2, 2), interpolation='bilinear')(block_32)
 
-    block_64 = generator_block(up_64, 32, noise_ph, latent_vector2)
-    block_64 = generator_block(block_64, 32, noise_ph, latent_vector2)
+    block_64 = generator_block(up_64, 16, noise_ph, latent_vector2)
+    block_64 = generator_block(block_64, 16, noise_ph, latent_vector2)
 
     rbg_64 = to_rgb(block_64)
     rbg_final = add([rbg_final, rbg_64], name="generator_out")
 
-    rbg_final_final = to_rgb(rbg_final)
+    rbg_final_final = Activation('sigmoid')(rbg_final)
+
 
     model = Model(inputs=[const_ph, noise_ph, latent_z_ph1, latent_z_ph2], outputs=rbg_final_final)
 

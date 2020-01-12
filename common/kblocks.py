@@ -180,7 +180,7 @@ def Conv_block(input, num_filters, kernal_size=(3,3)):
 def to_rgb(inputs):
     layer = Conv2D(filters=3,
            kernel_size=(1, 1),
-           activation='sigmoid',
+           activation='tanh',
            padding='same')(inputs)
 
     return layer
