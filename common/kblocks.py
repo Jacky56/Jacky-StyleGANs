@@ -6,13 +6,14 @@ from keras.layers import *
 from keras.models import *
 import keras.backend as K
 
+
 def generator_block(input, num_filters, noise, lantent_vector):
     scale, bias = Style_Gate(lantent_vector, num_filters)
     noise_channel = Noise_Gate(noise, num_filters, input.shape[1])
 
     layer = Conv2D(filters=num_filters,
                    kernel_size=(3,3),
-                   activation='relu',
+                   activation=LeakyReLU(alpha=0.1),
                    padding='same')(input)
 
     layer = add([noise_channel, layer])
@@ -41,18 +42,18 @@ def generator_block_v2(input, num_filters, noise, lantent_vector):
     sigma = K.pow(sigma, 2)
     sigma = K.sum(sigma, axis=[0, 1, 2], keepdims=True)
     sigma = K.pow(sigma + 1e-7, -0.5)
-    # sigma = Reshape([1, 1, num_filters])(sigma)
+    sigma = Reshape([1, 1, num_filters])(sigma)
+
     layer1 = Lambda(lambda x: x * sigma)(layer1)
-
-
     layer1 = Lambda(lambda x: x + bias)(layer1)
 
     return layer1
 
+
 def Style_Gate(lantent_vector, num_filters):
     #latent w parsed into 2 FC, scale and bias
-    scale = Dense(units=num_filters, name='Style_scale_')(lantent_vector)
-    bias = Dense(units=num_filters, name='Style_bias_')(lantent_vector)
+    scale = Dense(units=num_filters)(lantent_vector)
+    bias = Dense(units=num_filters)(lantent_vector)
 
     scale = Reshape([1, 1, num_filters])(scale)
     bias = Reshape([1, 1, num_filters])(bias)
@@ -78,7 +79,6 @@ def AdaIN(inputs):
     x_mean = K.mean(x, [1, 2], keepdims=True)
 
     x_std = K.std(x, [1, 2], keepdims=True) + 1e-7
-    print(x_std, x_mean)
     x = (x - x_mean) / x_std
     #apply feature space from latent w to image
     return (x * scale) + bias
@@ -135,12 +135,22 @@ def latent_W_VGG_encoder(image):
     layer = Flatten()(norm1)
     # 1x256
 
-    layer = Dense(units=1024,
+    layer = Dense(units=512,
                   activation='relu',
                   name='latent_vector')(layer)
-    # 1x256
+    # 1x512
 
     return layer
+
+def get_latent_vector_VGG_encoder(model):
+    while model.layers != None:
+        if model.layers[-1].name != 'latent_vector':
+            model.layers.pop()
+        else:
+            return model
+    return None
+
+
 
 
 def VGG_module(image, num_channels, kernel_size=(3,3)):
@@ -170,6 +180,7 @@ def Conv_block(input, num_filters, kernal_size=(3,3)):
 def to_rgb(inputs):
     layer = Conv2D(filters=3,
            kernel_size=(1, 1),
+           activation='sigmoid',
            padding='same')(inputs)
 
     return layer

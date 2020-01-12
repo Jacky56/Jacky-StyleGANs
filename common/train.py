@@ -78,7 +78,6 @@ class Train:
             class_mode='raw'
         )
 
-        # x_train, y_train = self.getSample(image_size, batch_size)
         self.model.fit_generator(
             train_generator,
             epochs=epochs,
@@ -90,16 +89,126 @@ class Train:
             # verbose=1,
             callbacks=[self.checkpoint, self.tensorboard])
 
+    def train_dis_GANs(self, image_size, batch_size, epochs=1, sample_size=100):
+        self.model.fit_generator(
+            self.setup_data_dis_GANS(image_size, batch_size, sample_size),
+            epochs=epochs,
+            steps_per_epoch=sample_size//batch_size,
+            max_queue_size=1,
+            shuffle=True,
+            callbacks=[self.checkpoint, self.tensorboard])
 
-    def getSample(self, image_size, batch_size):
-        sampled_metadata = self.metadata.sample(batch_size)
-        image_set = []
+    def train_gen_GANs(self, image_size, batch_size, epochs=1, sample_size=100):
+        self.model.fit_generator(
+            self.setup_data_gen_GANS(image_size, batch_size, sample_size),
+            epochs=epochs,
+            steps_per_epoch=sample_size//batch_size,
+            max_queue_size=1,
+            shuffle=True,
+            callbacks=[self.checkpoint, self.tensorboard])
 
-        for filename in sampled_metadata['filename']:
-            image_set.append(cv2.imread('{}/{}/{}'.format(self.base_data_path, image_size, filename)))
+    def setup_data_dis_GANS(self, image_size, batch_size, sample_size):
+        base_data_path_image = '{}/{}/'.format(self.base_data_path, image_size)
 
-        sampled_labels = sampled_metadata.drop(['filename'], axis=1)
-        sampled_images = np.array(image_set)
-        sampled_images = sampled_images / 255.0
+        train_df = self.metadata.sample(sample_size)
 
-        return sampled_images, sampled_labels
+        noise = np.random.normal(0,1, [sample_size, image_size,image_size,1])
+        constant = np.ones([sample_size, 4, 4, 1])
+
+        imagegen = ImageDataGenerator(
+            rescale=1. / 255.,
+            rotation_range=15,
+            width_shift_range=0.05,
+            height_shift_range=0.05,
+            shear_range=0.05,
+            zoom_range=0.15,
+            horizontal_flip=True,
+            fill_mode='nearest')
+
+        variablegen = ImageDataGenerator()
+
+
+        genC = variablegen.flow(constant, batch_size=batch_size)
+        genN = variablegen.flow(noise, batch_size=batch_size)
+
+
+        genX1 = imagegen.flow_from_dataframe(
+                dataframe=train_df,
+                directory=base_data_path_image,
+                x_col='filename',
+                target_size=(image_size, image_size),
+                batch_size=batch_size,
+                class_mode=None)
+
+        genX2 = imagegen.flow_from_dataframe(
+                dataframe=train_df,
+                directory=base_data_path_image,
+                x_col='filename',
+                target_size=(image_size, image_size),
+                batch_size=batch_size,
+                class_mode=None)
+
+        genX3 = imagegen.flow_from_dataframe(
+                dataframe=train_df,
+                directory=base_data_path_image,
+                x_col='filename',
+                target_size=(image_size, image_size),
+                batch_size=batch_size,
+                class_mode=None)
+
+        while True:
+            constant = genC.next()
+            noise = genN.next()
+            img1 = genX1.next()
+            img2 = genX2.next()
+            img3 = genX3.next()
+            yield [constant, noise, img1, img2, img3], [np.ones([constant.shape[0]]), np.zeros([constant.shape[0]])]
+
+    def setup_data_gen_GANS(self, image_size, batch_size, sample_size):
+        base_data_path_image = '{}/{}/'.format(self.base_data_path, image_size)
+
+        train_df = self.metadata.sample(sample_size)
+
+        noise = np.random.normal(0, 1, [sample_size, image_size, image_size, 1])
+        constant = np.ones([sample_size, 4, 4, 1])
+
+        imagegen = ImageDataGenerator(
+            rescale=1. / 255.,
+            # rotation_range=15,
+            # width_shift_range=0.05,
+            # height_shift_range=0.05,
+            # shear_range=0.05,
+            # zoom_range=0.15,
+            horizontal_flip=True,
+            fill_mode='nearest')
+
+        variablegen = ImageDataGenerator()
+
+        genC = variablegen.flow(constant, batch_size=batch_size)
+
+        genN = variablegen.flow(noise, batch_size=batch_size)
+
+        genX1 = imagegen.flow_from_dataframe(
+            dataframe=train_df,
+            directory=base_data_path_image,
+            x_col='filename',
+            target_size=(image_size, image_size),
+            batch_size=batch_size,
+            class_mode=None)
+
+        genX2 = imagegen.flow_from_dataframe(
+            dataframe=train_df,
+            directory=base_data_path_image,
+            x_col='filename',
+            target_size=(image_size, image_size),
+            batch_size=batch_size,
+            class_mode=None)
+
+        while True:
+            constant = genC.next()
+            noise = genN.next()
+            img1 = genX1.next()
+            img2 = genX2.next()
+
+            yield [constant, noise, img1, img2], [np.ones([constant.shape[0]])]
+

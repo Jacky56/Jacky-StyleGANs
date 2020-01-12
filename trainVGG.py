@@ -22,6 +22,8 @@ metadata = pd.read_csv('./source/custom_set/metadata/attr.txt', sep='\s+')
 base_src = './source/custom_set/images/'
 tesnorboard = tb(log_dir='./logs/{}'.format(model_name))
 model = load_model('./models/{}'.format(model_name))
+model.summary()
+
 checkpoint = ModelCheckpoint('./models/{}'.format(model_name), monitor='val_accuracy', verbose=1, save_best_only=False, period=10)
 
 image_size = 64
