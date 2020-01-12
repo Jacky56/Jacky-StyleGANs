@@ -110,7 +110,9 @@ class Train:
     def setup_data_dis_GANS(self, image_size, batch_size, sample_size):
         base_data_path_image = '{}/{}/'.format(self.base_data_path, image_size)
 
-        train_df = self.metadata.sample(sample_size)
+        train_df = []
+        for i in range(3):
+            train_df.append(self.metadata.sample(sample_size))
 
         noise = np.random.normal(0,1, [sample_size, image_size,image_size,1])
         constant = np.ones([sample_size, 4, 4, 1])
@@ -133,7 +135,7 @@ class Train:
 
 
         genX1 = imagegen.flow_from_dataframe(
-                dataframe=train_df,
+                dataframe=train_df[0],
                 directory=base_data_path_image,
                 x_col='filename',
                 target_size=(image_size, image_size),
@@ -141,7 +143,7 @@ class Train:
                 class_mode=None)
 
         genX2 = imagegen.flow_from_dataframe(
-                dataframe=train_df,
+                dataframe=train_df[1],
                 directory=base_data_path_image,
                 x_col='filename',
                 target_size=(image_size, image_size),
@@ -149,7 +151,7 @@ class Train:
                 class_mode=None)
 
         genX3 = imagegen.flow_from_dataframe(
-                dataframe=train_df,
+                dataframe=train_df[2],
                 directory=base_data_path_image,
                 x_col='filename',
                 target_size=(image_size, image_size),
@@ -167,7 +169,9 @@ class Train:
     def setup_data_gen_GANS(self, image_size, batch_size, sample_size):
         base_data_path_image = '{}/{}/'.format(self.base_data_path, image_size)
 
-        train_df = self.metadata.sample(sample_size)
+        train_df = []
+        for i in range(2):
+            train_df.append(self.metadata.sample(sample_size))
 
         noise = np.random.normal(0, 1, [sample_size, image_size, image_size, 1])
         constant = np.ones([sample_size, 4, 4, 1])
@@ -189,7 +193,7 @@ class Train:
         genN = variablegen.flow(noise, batch_size=batch_size)
 
         genX1 = imagegen.flow_from_dataframe(
-            dataframe=train_df,
+            dataframe=train_df[0],
             directory=base_data_path_image,
             x_col='filename',
             target_size=(image_size, image_size),
@@ -197,7 +201,7 @@ class Train:
             class_mode=None)
 
         genX2 = imagegen.flow_from_dataframe(
-            dataframe=train_df,
+            dataframe=train_df[1],
             directory=base_data_path_image,
             x_col='filename',
             target_size=(image_size, image_size),
