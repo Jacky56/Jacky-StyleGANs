@@ -139,7 +139,7 @@ for i in range(1000):
     print('CURRENT SIZE :', current_img_size)
     history = trainer_discriminator.train_dis_GANs(image_sizes[current_img_size], image_size, batch_size, epochs=10, sample_size=1000)
     trainer_generator.train_gen_GANs(image_sizes[current_img_size], image_size, batch_size, epochs=10, sample_size=4000)
-    if abs(np.mean(history.history['model_1_mean_squared_error']) - 0.5) < 0.05:
+    if abs(np.mean(history.history['model_1_mean_squared_error_1']) - 0.25) < 0.01:
         current_img_size += 1
         print('SIZE HAS BEEN INCREMENTED TO:', current_img_size)
 
