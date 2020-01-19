@@ -15,6 +15,7 @@ from common.generator import default_gen
 from common.kblocks import *
 from make_datasets import *
 from make_datasets.modify_metadata import *
+import matplotlib.image as mpimg
 
 # cols = ['Blurry', '5_o_Clock_Shadow', 'Sideburns', 'Wearing_Necktie', 'Wearing_Hat', 'Wearing_Necklace']
 # meta_data = pd.read_csv('source/Anno/list_attr_celeba.txt', sep='\s+')
@@ -46,20 +47,36 @@ except:
     print("cannot find discriminator weights, creating new h5")
 
 
-a = cv2.imread(base_target + '64/000001.png').reshape([1,64,64,3])
-b = cv2.imread(base_target + '64/000002.png').reshape([1,64,64,3])
+a = mpimg.imread(base_target + '64/000001.png')
+b = mpimg.imread(base_target + '32/000001.png')
+c = mpimg.imread(base_target + '16/000001.png')
+d = mpimg.imread(base_target + '4/000001.png')
+b = cv2.resize(b, (64,64), interpolation=cv2.INTER_LINEAR)
+c = cv2.resize(c, (64,64), interpolation=cv2.INTER_LINEAR)
+d = cv2.resize(d, (64,64), interpolation=cv2.INTER_LINEAR)
+
+plt.figure()
+plt.imshow(a)
+plt.figure()
+plt.imshow(b)
+plt.figure()
+plt.imshow(c)
+plt.figure()
+plt.imshow(d)
+plt.show()
+
 
 c = np.ones([1,4,4,1])
-n = np.random.normal(0,1,[1,64,64,1])
+n = np.random.uniform(0,1,[1,64,64,1])
 
 # model = Model(inputs=[const_ph, noise_ph, latent_z_ph1, latent_z_ph2], outputs=rbg_final)
 
 
-p = global_generator.predict([c,n,a,b])
-
-img = p.reshape([64,64,3])
-img *= 255.0/img.max()
-img = img.astype(np.uint8)
-img = np.array(img, np.int32)
-plt.imshow(img)
-plt.show()
+# p = global_generator.predict([c,n,a,b])
+#
+# img = p.reshape([64,64,3])
+# img *= 255.0/img.max()
+# img = img.astype(np.uint8)
+# img = np.array(img, np.int32)
+# plt.imshow(img)
+# plt.show()

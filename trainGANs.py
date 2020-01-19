@@ -29,20 +29,18 @@ def build_discriminator_trainer(discriminator, generator):
     for layer in discriminator.layers:
         layer.trainable = True
 
-    const_ph = Input([4, 4, 1], name="constant")
     noise_ph = Input([64, 64, 1], name="noise")
     latent_z_ph1 = Input([64, 64, 3], name="image1")
     latent_z_ph2 = Input([64, 64, 3], name="image2")
 
     real_image = Input([64, 64, 3], name="discriminator_image")
 
-    output_generator = generator([const_ph, noise_ph, latent_z_ph1, latent_z_ph2])
+    output_generator = generator([noise_ph, latent_z_ph1, latent_z_ph2])
     output_fake = discriminator(output_generator)
 
     output_real = discriminator(real_image)
 
-    model_discriminator = Model(inputs=[const_ph,
-                                        noise_ph,
+    model_discriminator = Model(inputs=[noise_ph,
                                         latent_z_ph1,
                                         latent_z_ph2,
                                         real_image],
@@ -59,16 +57,18 @@ def build_gnerator_trainer(discriminator, generator):
     for layer in discriminator.layers:
         layer.trainable = False
 
-    const_ph = Input([4, 4, 1], name="constant")
     noise_ph = Input([64, 64, 1], name="noise")
     latent_z_ph1 = Input([64, 64, 3], name="image1")
     latent_z_ph2 = Input([64, 64, 3], name="image2")
 
-    output_generator = generator([const_ph, noise_ph, latent_z_ph1, latent_z_ph2])
+    output_generator = generator([noise_ph, latent_z_ph1, latent_z_ph2])
     output_discriminator = discriminator(output_generator)
 
-    model_generator = Model(inputs=[const_ph , noise_ph, latent_z_ph1, latent_z_ph2], outputs=[output_discriminator])
-    model_generator.compile(optimizer=Adam(0.0001, 0.5), loss='binary_crossentropy', metrics=['binary_accuracy', 'mse', custom_loss])
+    model_generator = Model(inputs=[noise_ph, latent_z_ph1, latent_z_ph2], outputs=[output_discriminator, output_generator])
+    model_generator.compile(optimizer=Adam(0.0001, 0.5),
+                            loss=['binary_crossentropy', 'mse'],
+                            loss_weights=[1, 0.1],
+                            metrics=['binary_accuracy', 'mse'])
 
     return model_generator
 
@@ -96,8 +96,11 @@ model_discriminator = build_discriminator_trainer(global_discriminator, global_g
 model_generator = build_gnerator_trainer(global_discriminator, global_generator)
 
 
+
+
 model_discriminator.summary()
 model_generator.summary()
+
 
 cp_dis = ModelCheckpoint('./models/{}'.format('full_dis.h5'),
                              monitor='val_accuracy',
@@ -113,7 +116,10 @@ cp_gen = ModelCheckpoint('./models/{}'.format('full_gen.h5'),
                              save_weights_only=True,
                              period=10)
 image_size = 64
-batch_size = 126
+batch_size = 64
+
+current_img_size = 0
+image_sizes = [4,8,16,32,64]
 
 trainer_discriminator = Train()
 trainer_discriminator.set_base_data_path(base_src)
@@ -124,17 +130,23 @@ trainer_discriminator.set_tensorboard(cp_gen)
 
 trainer_generator = Train()
 trainer_generator.set_base_data_path(base_src)
-trainer_generator.set_checkpoint(cp_dis)
+trainer_generator.set_checkpoint(tb_gen)
 trainer_generator.set_metadata(metadata)
 trainer_generator.set_model(model_generator)
 trainer_generator.set_tensorboard(cp_gen)
 
-for i in range(10000):
-    trainer_discriminator.train_dis_GANs(image_size, batch_size, sample_size=250)
-    trainer_generator.train_gen_GANs(image_size, batch_size, sample_size=4000)
+for i in range(1000):
+    print('CURRENT SIZE :', current_img_size)
+    history = trainer_discriminator.train_dis_GANs(image_sizes[current_img_size], image_size, batch_size, epochs=10, sample_size=1000)
+    trainer_generator.train_gen_GANs(image_sizes[current_img_size], image_size, batch_size, epochs=10, sample_size=4000)
+    if abs(np.mean(history.history['model_1_mean_squared_error']) - 0.5) < 0.05:
+        current_img_size += 1
+        print('SIZE HAS BEEN INCREMENTED TO:', current_img_size)
 
-    if i % 10 == 0:
+
+    if i % 3 == 0:
         global_discriminator.save_weights('./models/{}'.format(dicriminator_name))
         global_generator.save_weights('./models/{}'.format(generator_name))
         print('discriminator and generator saved.')
+        print('CURRENT SIZE :', current_img_size)
 

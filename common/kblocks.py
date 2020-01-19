@@ -8,17 +8,17 @@ import keras.backend as K
 
 
 def generator_block(input, num_filters, noise, lantent_vector):
-    scale, bias = Style_Gate(lantent_vector, num_filters)
-    noise_channel = Noise_Gate(noise, num_filters, input.shape[1])
+    scale = Style_Gate(lantent_vector, num_filters)
+    noise_channel = Noise_Gate(noise, num_filters, K.int_shape(input)[1])
 
     layer = Conv2D(filters=num_filters,
                    kernel_size=(3,3),
-                   activation=LeakyReLU(alpha=0.1),
+                   activation=LeakyReLU(alpha=0.2),
                    padding='same')(input)
 
     layer = add([noise_channel, layer])
 
-    layer = Lambda(AdaIN)([layer, scale, bias])
+    layer = Lambda(AdaIN)([layer, scale])
 
     return layer
 
@@ -52,20 +52,19 @@ def generator_block_v2(input, num_filters, noise, lantent_vector):
 
 def Style_Gate(lantent_vector, num_filters):
     #latent w parsed into 2 FC, scale and bias
-    scale = Dense(units=num_filters)(lantent_vector)
-    bias = Dense(units=num_filters)(lantent_vector)
+    encode_value = Dense(units=num_filters)(lantent_vector)
 
-    scale = Reshape([1, 1, num_filters])(scale)
-    bias = Reshape([1, 1, num_filters])(bias)
+    # scale = Reshape([1, 1, num_filters])(scale)
+    # bias = Reshape([1, 1, num_filters])(bias)
 
-    return scale, bias
+    return encode_value
 
 def Noise_Gate(Noise, num_filters, image_size):
-    num_filters = int(num_filters)
-    image_size = int(image_size)
-
+    num_filters = num_filters
+    image_size = image_size
     #crops the middle of the image
     crop_size = int((Noise.shape[1] - image_size) // 2)
+
     noise_channel = Cropping2D(cropping=crop_size)(Noise)
     #projection layer
     noise_channel = Conv2D(filters=num_filters,
@@ -74,14 +73,16 @@ def Noise_Gate(Noise, num_filters, image_size):
     return noise_channel
 
 def AdaIN(inputs):
-    x, scale, bias = inputs
+    x, encode_value = inputs
+
     #standardising each channel of instance
     x_mean = K.mean(x, [1, 2], keepdims=True)
-
     x_std = K.std(x, [1, 2], keepdims=True) + 1e-7
     x = (x - x_mean) / x_std
+    sigma = K.std(encode_value)
+    mu = K.mean(encode_value)
     #apply feature space from latent w to image
-    return (x * scale) + bias
+    return (x * sigma) + mu
 
 
 def generate_image_noise(batch_size, image_size):
